@@ -1,0 +1,171 @@
+/* Contact Component Styles */
+
+/* Page Layout */
+.page {
+  min-height: calc(100vh - 80px);
+  padding: var(--spacing-2xl) 0;
+}
+
+.page-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  width: 100%;
+}
+
+/* Contact Page Grid */
+.contact-page-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+
+/* Contact Information */
+.contact-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+}
+
+.contact-card {
+  text-align: center;
+  padding: var(--spacing-lg);
+  background: var(--warm-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--light-brown);
+}
+
+.contact-icon {
+  font-size: 2rem;
+  color: var(--primary-pink);
+  margin-bottom: var(--spacing-sm);
+}
+
+.contact-card h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+.contact-card p {
+  color: var(--text-light);
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.5;
+}
+
+/* Order Form (reused for contact form) */
+.order-form {
+  background: var(--warm-white);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--light-brown);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.order-form h3 {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  color: var(--primary-pink);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+/* Card Components */
+.card {
+  background: var(--warm-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--light-brown);
+  transition: all var(--transition-normal);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Success/Error Messages */
+.message {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  font-weight: 500;
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Loading States */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--soft-pink);
+  border-top: 2px solid var(--primary-pink);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .contact-page-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .order-form {
+    padding: var(--spacing-lg);
+  }
+}
