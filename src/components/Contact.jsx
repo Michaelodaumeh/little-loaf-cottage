@@ -1,6 +1,5 @@
 import { useState } from "react";
-import emailjs from '@emailjs/browser';
-import { emailConfig } from '../config/emailConfig';
+import { sendEmail } from '../utils/emailService';
 import "./css/Contact.css";
 
 export default function Contact() {
@@ -27,30 +26,40 @@ export default function Contact() {
     setIsSubmitting(true);
     
     try {
-      // Send email using EmailJS
-      await emailjs.send(
-        emailConfig.serviceId,
-        emailConfig.templateId,
-        {
-          from_name: formData.name,
-          from_email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-          to_email: emailConfig.businessEmail,
-        },
-        emailConfig.publicKey
-      );
+      // Send contact form email to business using SendGrid
+      await sendEmail({
+        to: 'littleloafcottagebakery@gmail.com',
+        subject: `Contact Form: ${formData.subject}`,
+        text: `Name: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #e91e63;">New Contact Form Submission</h2>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Name:</strong> ${formData.name}</p>
+              <p><strong>Email:</strong> ${formData.email}</p>
+              <p><strong>Subject:</strong> ${formData.subject}</p>
+            </div>
+            <div style="background: white; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+              <h3 style="color: #333; margin-top: 0;">Message:</h3>
+              <p style="white-space: pre-wrap;">${formData.message}</p>
+            </div>
+          </div>
+        `
+      });
       
       setIsSubmitting(false);
-      setShowSuccess(true);
-      setFormData({ name: '', email: '', subject: '', message: '' });
       
-      setTimeout(() => setShowSuccess(false), 5000);
+      // Check if this was a local development skip
+      if (result.status === 'LOCAL_DEV_SKIP') {
+        alert('Message would be sent in production! For now, please contact us directly at littleloafcottagebakery@gmail.com');
+      } else {
+        setShowSuccess(true);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setShowSuccess(false), 5000);
+      }
     } catch (error) {
-      console.error('Failed to send email:', error);
       setIsSubmitting(false);
-      // You might want to show an error message to the user
-      alert('Failed to send message. Please try again or contact us directly at littleloafcottage@gmail.com');
+      alert('Failed to send message. Please try again or contact us directly at littleloafcottagebakery@gmail.com');
     }
   };
 

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOrder } from "../contexts/OrderContext";
-import emailjs from '@emailjs/browser';
-import { emailConfig } from '../config/emailConfig';
+import SquarePaymentForm from './SquarePaymentForm';
 import "./css/Order.css";
 
 export default function Order() {
@@ -26,6 +25,8 @@ export default function Order() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [paymentStep, setPaymentStep] = useState('form'); // 'form', 'payment', 'success'
+  const [paymentError, setPaymentError] = useState('');
 
   const getTotalPrice = () => {
     return selectedItems.reduce((total, item) => total + item.price, 0);
@@ -56,67 +57,45 @@ export default function Order() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
       return;
     }
     
-    setIsSubmitting(true);
+    // Move to payment step
+    setPaymentStep('payment');
     setFormErrors({});
+  };
+
+  const handlePaymentSuccess = async (paymentResult) => {
+    setIsSubmitting(true);
+    setPaymentError('');
     
     try {
-      // Send order notification email to business
-      await emailjs.send(
-        emailConfig.serviceId,
-        emailConfig.templateId, // You'll need a separate template for orders
-        {
-          from_name: formData.name,
-          from_email: formData.email,
-          from_phone: formData.phone,
-          order_items: selectedItems.map(item => 
-            `${item.name} - $${item.price}`
-          ).join('\n'),
-          total_price: totalPrice,
-          delivery_address: formData.address,
-          delivery_instructions: formData.instructions || 'No special instructions',
-          order_type: 'New Order Notification',
-          to_email: emailConfig.businessEmail,
-        },
-        emailConfig.publicKey
-      );
-
-      // Send confirmation email to customer
-      await emailjs.send(
-        emailConfig.serviceId,
-        'template_customer_confirmation', // You'll need this template too
-        {
-          customer_name: formData.name,
-          customer_email: formData.email,
-          order_items: selectedItems.map(item => 
-            `${item.name} - $${item.price}`
-          ).join('\n'),
-          total_price: totalPrice,
-          delivery_address: formData.address,
-          to_email: formData.email,
-        },
-        emailConfig.publicKey
-      );
+      const totalPrice = getTotalPrice();
+      
+      // Email notifications are now handled automatically by SquarePaymentForm
       
       setIsSubmitting(false);
-      setShowSuccess(true);
+      setPaymentStep('success');
       clearOrder(); // Clear the order from context
       
-      // Redirect to home after 3 seconds
+      // Redirect to home after 5 seconds
       setTimeout(() => {
         navigate('/');
-      }, 3000);
+      }, 5000);
     } catch (error) {
-      console.error('Failed to send order notification:', error);
       setIsSubmitting(false);
-      setFormErrors({ submit: 'Failed to place order. Please try again or contact us directly.' });
+      setPaymentError('Payment successful, but failed to send confirmation emails. Your order has been processed.');
+      setPaymentStep('success');
     }
+  };
+
+  const handlePaymentError = (error) => {
+    setPaymentError(error);
+    setIsSubmitting(false);
   };
 
   if (selectedItems.length === 0) {
@@ -139,7 +118,7 @@ export default function Order() {
     );
   }
 
-  if (showSuccess) {
+  if (paymentStep === 'success') {
     return (
       <div className="page">
         <div className="page-content text-center">
@@ -147,6 +126,18 @@ export default function Order() {
             <div style={{ fontSize: '4rem', marginBottom: 'var(--spacing-md)' }}>🎉</div>
             <h2>Order Placed Successfully!</h2>
             <p>Thank you for your order! We'll contact you soon to confirm the details.</p>
+            {paymentError && (
+              <div style={{ 
+                background: '#fff3cd', 
+                color: '#856404', 
+                padding: 'var(--spacing-sm)', 
+                borderRadius: 'var(--radius-sm)', 
+                marginBottom: 'var(--spacing-md)',
+                border: '1px solid #ffeaa7'
+              }}>
+                {paymentError}
+              </div>
+            )}
             <p>Redirecting to home page...</p>
             <div className="loading">
               <div className="spinner"></div>
@@ -347,7 +338,7 @@ export default function Order() {
           </div>
 
           {/* Order Form */}
-          <form className="order-form" onSubmit={handleSubmit} noValidate>
+          <form className="order-form" onSubmit={handleFormSubmit} noValidate>
             <h3>Delivery Information</h3>
             
             {formErrors.submit && (
@@ -491,16 +482,51 @@ export default function Order() {
               className="btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <>
-                  <div className="spinner"></div>
-                  Processing Order...
-                </>
-              ) : (
-                'Place Order'
-              )}
+              Continue to Payment
             </button>
           </form>
+
+          {/* Payment Form - Only show when payment step is active */}
+          {paymentStep === 'payment' && (
+            <div className="payment-section">
+              <div className="payment-header">
+                <h3>Complete Your Payment</h3>
+                <p>Secure payment processing for your order</p>
+              </div>
+              
+              {paymentError && (
+                <div className="error-message" style={{ 
+                  background: '#fee', 
+                  color: '#c33', 
+                  padding: 'var(--spacing-sm)', 
+                  borderRadius: 'var(--radius-sm)', 
+                  marginBottom: 'var(--spacing-md)',
+                  border: '1px solid #fcc'
+                }}>
+                  {paymentError}
+                </div>
+              )}
+
+              <SquarePaymentForm
+                amount={getTotalPrice()}
+                customerEmail={formData.email}
+                onPaymentSuccess={handlePaymentSuccess}
+                onPaymentError={handlePaymentError}
+                isProcessing={isSubmitting}
+              />
+
+              <div className="payment-actions">
+                <button 
+                  type="button"
+                  onClick={() => setPaymentStep('form')}
+                  className="btn-secondary"
+                  disabled={isSubmitting}
+                >
+                  ← Back to Form
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
