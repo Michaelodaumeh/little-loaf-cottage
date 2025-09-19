@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { payments } from '@square/web-sdk';
-import { squareConfig } from '../config/squareConfig';
+const squareAccessToken = import.meta.env.VITE_SQUARE_ACCESS_TOKEN;
+const squareEnvironment = import.meta.env.VITE_SQUARE_ENVIRONMENT;
+const squareLocationId = import.meta.env.VITE_SQUARE_LOCATION_ID;
+
 import { sendOrderEmails } from '../utils/emailService';
 import './css/SquarePaymentForm.css';
 
