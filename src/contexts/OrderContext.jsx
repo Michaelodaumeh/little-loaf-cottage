@@ -31,9 +31,9 @@ const STORAGE_KEY = 'little-loaf-cottage-order';
 const saveOrderToStorage = (items) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch (error) {
-    console.warn('Failed to save order to localStorage:', error);
-  }
+    } catch (error) {
+      // Failed to save to localStorage, continue silently
+    }
 };
 
 /**
@@ -45,10 +45,9 @@ const loadOrderFromStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.warn('Failed to load order from localStorage:', error);
-    return [];
-  }
+    } catch (error) {
+      return [];
+    }
 };
 
 /**
