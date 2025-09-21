@@ -166,7 +166,7 @@ Order Management System`;
   `;
 
   return sendEmail({
-    to: 'littleloafcottagebakery@gmail.com', // Admin email
+    to: import.meta.env.VITE_ADMIN_EMAIL || 'littleloafcottagebakery@gmail.com', // Admin email
     subject,
     text,
     html

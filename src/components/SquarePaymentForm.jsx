@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { payments } from '@square/web-sdk';
-const squareAccessToken = import.meta.env.VITE_SQUARE_ACCESS_TOKEN;
-const squareEnvironment = import.meta.env.VITE_SQUARE_ENVIRONMENT;
-const squareLocationId = import.meta.env.VITE_SQUARE_LOCATION_ID;
+import { squareConfig, isSquareConfigured, getSquareEnvironment } from '../config/squareConfig';
 
 import { sendOrderEmails } from '../utils/emailService';
 import './css/SquarePaymentForm.css';
@@ -41,12 +39,8 @@ export default function SquarePaymentForm({
     const initializeSquare = async () => {
       try {
         // Validate configuration
-        if (!squareConfig.applicationId) {
-          throw new Error('Square Application ID not configured. Please update squareConfig.js with your actual Application ID.');
-        }
-
-        if (!squareConfig.locationId) {
-          throw new Error('Square Location ID not configured. Please update squareConfig.js with your actual Location ID.');
+        if (!isSquareConfigured()) {
+          throw new Error('Square configuration not complete. Please update squareConfig.js with your actual Application ID and Location ID.');
         }
 
         // Wait for DOM to be ready
@@ -59,7 +53,8 @@ export default function SquarePaymentForm({
         try {
           paymentsRef.current = await payments(
             squareConfig.applicationId.trim(),
-            squareConfig.locationId.trim()
+            squareConfig.locationId.trim(),
+            getSquareEnvironment()
           );
         } catch (initError) {
           // Handle specific Square SDK errors
@@ -266,7 +261,7 @@ export default function SquarePaymentForm({
 
 
   // Show configuration error if Square credentials are not set up
-  if (!squareConfig.applicationId) {
+  if (!isSquareConfigured()) {
     return (
       <div className="square-payment-form">
         <div className="payment-form-header">
