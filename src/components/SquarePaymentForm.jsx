@@ -277,14 +277,14 @@ export default function SquarePaymentForm({
             <li>Go to <a href="https://developer.squareup.com/" target="_blank" rel="noopener noreferrer">Square Developer Dashboard</a></li>
             <li>Create an application and get your Application ID</li>
             <li>Update <code>src/config/squareConfig.js</code> with your actual Application ID</li>
-            <li>Replace <code>'sandbox-sq0idp-your-actual-application-id-here'</code> with your real Application ID</li>
+            <li>Replace the placeholder Application ID with your real Application ID</li>
           </ol>
           <p><strong>Application ID Format:</strong></p>
           <ul>
-            <li><strong>Sandbox:</strong> <code>sandbox-sq0idp-[characters]</code></li>
-            <li><strong>Production:</strong> <code>sq0idp-[characters]</code></li>
+            <li><strong>Sandbox:</strong> Application ID starts with </li>
+            <li><strong>Production:</strong> Application ID starts with </li>
           </ul>
-          <p><strong>Example:</strong> <code>applicationId: 'sandbox-sq0idp-AkIjEYtD0bcUzQoXMqyTXQ'</code></p>
+          <p><strong>Example:</strong> </p>
         </div>
       </div>
     );
