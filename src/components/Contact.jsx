@@ -86,8 +86,8 @@ export default function Contact() {
                 <div className="contact-icon">📍</div>
                 <h4>Visit Us</h4>
                 <p><strong>Little Loaf Cottage</strong></p>
-                <p>123 Bakery Street</p>
-                <p>Sweetville, CA 90210</p>
+                <p>2120 Hollandale Circle</p>
+                <p>Columbia, TN 38401</p>
               </div>
 
               <div className="contact-card">
