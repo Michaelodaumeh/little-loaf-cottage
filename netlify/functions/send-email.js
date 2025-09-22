@@ -5,7 +5,7 @@
  * It sends order confirmations to customers and notifications to admin.
  * 
  * Environment Variables Required:
- * - SENDGRID_API_KEY: Your SendGrid API Key
+ * - This function uses SendGrid; the API key is stored in an environment variable
  */
 
 import sgMail from '@sendgrid/mail';

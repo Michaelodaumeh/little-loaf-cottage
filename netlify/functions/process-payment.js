@@ -5,9 +5,9 @@
  * It receives payment tokens from the frontend and processes them with Square.
  * 
  * Environment Variables Required:
- * - SQUARE_ACCESS_TOKEN: Your Square Access Token (Secret Key)
- * - SQUARE_LOCATION_ID: Your Square Location ID
- * - SQUARE_ENVIRONMENT: 'sandbox' or 'production'
+ * - This function uses Square; the access token is stored in an environment variable
+ * - Square location ID is stored in an environment variable
+ * - Square environment setting (sandbox or production) is stored in an environment variable
  */
 
 import crypto from 'crypto';
