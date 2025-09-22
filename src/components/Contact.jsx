@@ -179,7 +179,7 @@ export default function Contact() {
                     ⏰ Order Ahead
                   </h4>
                   <p style={{ color: 'var(--text-light)', lineHeight: '1.5' }}>
-                    Place your order 24 hours in advance for guaranteed availability. 
+                    Place your order 48 hours in advance for guaranteed availability. 
                     We'll have everything fresh and ready for you!
                   </p>
                 </div>
