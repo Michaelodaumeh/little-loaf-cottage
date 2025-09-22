@@ -8,10 +8,10 @@
 // Square configuration using environment variables
 export const squareConfig = {
   // Square Application ID (public key - safe to expose)
-  applicationId: import.meta.env.VITE_SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || '',
+  applicationId: import.meta.env.VITE_SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || __SQUARE_APP_ID__ || '',
   
   // Square Location ID (public - safe to expose)
-  locationId: import.meta.env.VITE_SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || '',
+  locationId: import.meta.env.VITE_SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || __SQUARE_LOCATION_ID__ || '',
   
   // Payment processing endpoint
   paymentEndpoint: '/.netlify/functions/process-payment',
@@ -61,7 +61,14 @@ export const isSquareConfigured = () => {
       envVars: {
         VITE_SQUARE_APPLICATION_ID: import.meta.env.VITE_SQUARE_APPLICATION_ID || 'MISSING',
         VITE_SQUARE_LOCATION_ID: import.meta.env.VITE_SQUARE_LOCATION_ID || 'MISSING',
-        VITE_SQUARE_ENVIRONMENT: import.meta.env.VITE_SQUARE_ENVIRONMENT || 'MISSING'
+        VITE_SQUARE_ENVIRONMENT: import.meta.env.VITE_SQUARE_ENVIRONMENT || 'MISSING',
+        SQUARE_APP_ID: import.meta.env.SQUARE_APP_ID || 'MISSING',
+        SQUARE_LOCATION_ID: import.meta.env.SQUARE_LOCATION_ID || 'MISSING',
+        SQUARE_ENVIRONMENT: import.meta.env.SQUARE_ENVIRONMENT || 'MISSING',
+        // Build-time variables (injected by Vite)
+        __SQUARE_APP_ID__: __SQUARE_APP_ID__ || 'MISSING',
+        __SQUARE_LOCATION_ID__: __SQUARE_LOCATION_ID__ || 'MISSING',
+        __SQUARE_ENVIRONMENT__: __SQUARE_ENVIRONMENT__ || 'MISSING'
       }
     });
   }
@@ -71,6 +78,6 @@ export const isSquareConfigured = () => {
 
 // Get Square environment (sandbox or production)
 export const getSquareEnvironment = () => {
-  return import.meta.env.VITE_SQUARE_ENVIRONMENT || 'sandbox';
+  return import.meta.env.VITE_SQUARE_ENVIRONMENT || import.meta.env.SQUARE_ENVIRONMENT || __SQUARE_ENVIRONMENT__ || 'sandbox';
 };
 
