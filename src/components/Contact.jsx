@@ -94,7 +94,7 @@ export default function Contact() {
                 <div className="contact-icon">📞</div>
                 <h4>Call Us</h4>
                 <p><strong>Phone:</strong></p>
-                <p>(555) 123-BAKE</p>
+                <p>(931) 982-3020</p>
                 <p><strong>Hours:</strong></p>
                 <p>Mon-Sat: 6AM-6PM</p>
                 <p>Sun: 7AM-4PM</p>
