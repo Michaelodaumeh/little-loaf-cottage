@@ -199,7 +199,7 @@ export default function Contact() {
                   margin: 0,
                   fontSize: '1.1rem'
                 }}>
-                  📞 Call (555) 123-BAKE or email us to arrange special delivery!
+                  📞 Call (931) 982-3020 or email us to arrange special delivery!
                 </p>
               </div>
             </div>
