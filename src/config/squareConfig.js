@@ -46,7 +46,27 @@ export const squareConfig = {
 
 // Validation function to check if Square is properly configured
 export const isSquareConfigured = () => {
-  return !!(squareConfig.applicationId && squareConfig.locationId);
+  const hasAppId = !!squareConfig.applicationId;
+  const hasLocationId = !!squareConfig.locationId;
+  
+  // Debug logging to help troubleshoot deployment issues
+  if (typeof window !== 'undefined') {
+    console.log('🔍 Square Configuration Debug:', {
+      applicationId: squareConfig.applicationId || 'MISSING',
+      locationId: squareConfig.locationId || 'MISSING',
+      environment: getSquareEnvironment(),
+      hasAppId,
+      hasLocationId,
+      isConfigured: hasAppId && hasLocationId,
+      envVars: {
+        VITE_SQUARE_APPLICATION_ID: import.meta.env.VITE_SQUARE_APPLICATION_ID || 'MISSING',
+        VITE_SQUARE_LOCATION_ID: import.meta.env.VITE_SQUARE_LOCATION_ID || 'MISSING',
+        VITE_SQUARE_ENVIRONMENT: import.meta.env.VITE_SQUARE_ENVIRONMENT || 'MISSING'
+      }
+    });
+  }
+  
+  return hasAppId && hasLocationId;
 };
 
 // Get Square environment (sandbox or production)
