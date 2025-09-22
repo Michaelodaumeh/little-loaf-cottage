@@ -113,7 +113,7 @@ export default function Contact() {
                 <div className="contact-icon">🕒</div>
                 <h4>Special Orders</h4>
                 <p>Need something special?</p>
-                <p>Contact us at least 24 hours in advance for custom orders and large quantities.</p>
+                <p>Contact us at least 2 weeks in advance for custom orders and large quantities.</p>
               </div>
             </div>
 
