@@ -8,10 +8,10 @@
 // Square configuration using environment variables
 export const squareConfig = {
   // Square Application ID (public key - safe to expose)
-  applicationId: import.meta.env.VITE_SQUARE_APPLICATION_ID || '',
+  applicationId: import.meta.env.VITE_SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || '',
   
   // Square Location ID (public - safe to expose)
-  locationId: import.meta.env.VITE_SQUARE_LOCATION_ID || '',
+  locationId: import.meta.env.VITE_SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || '',
   
   // Payment processing endpoint
   paymentEndpoint: '/.netlify/functions/process-payment',

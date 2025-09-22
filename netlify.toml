@@ -36,3 +36,6 @@
 # Processing configuration
 [build.processing]
   skip_processing = false
+
+# Note: Environment variables should be set in Netlify Dashboard
+# Do NOT hardcode sensitive values here - they would be public in the repository
