@@ -58,8 +58,19 @@ export const handler = async (event) => {
     // Set SendGrid API key
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-    // Parse request body
-    const { to, subject, text, html, from } = JSON.parse(event.body);
+  // Parse request body
+  const { to, subject, text, html, from } = JSON.parse(event.body || '{}');
+
+  const debug = process.env.DEBUG_SEND_EMAIL === 'true';
+
+  // Basic email format check (simple, not exhaustive)
+  const isValidEmail = (addr) => typeof addr === 'string' && /.+@.+\..+/.test(addr);
+
+  // Log incoming payload (safe to log recipient/subject; do NOT log API keys)
+  // Netlify function logs are visible in the site deploy/function logs
+  // This helps diagnose misconfigurations like missing recipients or bad env
+  // eslint-disable-next-line no-console
+  console.log('send-email request:', { to, subject, from: from || process.env.FROM_EMAIL });
 
     // Validate required fields
     if (!to || !subject || !text) {
@@ -76,6 +87,20 @@ export const handler = async (event) => {
       };
     }
 
+    if (!isValidEmail(to)) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'FAILED',
+          error: 'Invalid recipient email address'
+        }),
+      };
+    }
+
     // Prepare email message
     const msg = {
       to: to,
@@ -86,30 +111,48 @@ export const handler = async (event) => {
     };
 
     // Send email
-    await sgMail.send(msg);
+    try {
+      const sgResponse = await sgMail.send(msg);
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        status: 'SENT',
-        message: 'Email sent successfully'
-      }),
-    };
+      // Log SendGrid response summary for debugging
+      // eslint-disable-next-line no-console
+      console.log('SendGrid response:', Array.isArray(sgResponse) ? sgResponse.map(r => ({ statusCode: r.statusCode })) : { statusCode: sgResponse && sgResponse.statusCode });
 
-  } catch (error) {
-    // Handle specific SendGrid errors
-    let errorMessage = 'Email sending failed';
-    if (error.response) {
-      const { body } = error.response;
-      if (body && body.errors && body.errors.length > 0) {
-        errorMessage = body.errors.map(err => err.message).join(', ');
+      return {
+        statusCode: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(debug ? { status: 'SENT', message: 'Email sent successfully', detail: sgResponse } : { status: 'SENT', message: 'Email sent successfully' }),
+      };
+    } catch (sendError) {
+      // Log detailed SendGrid error to function logs
+      // eslint-disable-next-line no-console
+      console.error('SendGrid send error:', sendError);
+      let errorMessage = 'Email sending failed';
+      let sgErrors = null;
+      if (sendError && sendError.response && sendError.response.body) {
+        sgErrors = sendError.response.body;
+        if (sgErrors && sgErrors.errors && sgErrors.errors.length) {
+          errorMessage = sgErrors.errors.map(err => err.message).join(', ');
+        }
       }
+
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(debug ? { status: 'FAILED', error: errorMessage, detail: sgErrors } : { status: 'FAILED', error: errorMessage }),
+      };
     }
 
+  } catch (error) {
+    // Fallback catch-all (shouldn't be reached due to inner try/catch)
+    // eslint-disable-next-line no-console
+    console.error('Unexpected send-email error:', error);
     return {
       statusCode: 500,
       headers: {
@@ -118,7 +161,7 @@ export const handler = async (event) => {
       },
       body: JSON.stringify({
         status: 'FAILED',
-        error: errorMessage
+        error: 'Unexpected server error'
       }),
     };
   }
