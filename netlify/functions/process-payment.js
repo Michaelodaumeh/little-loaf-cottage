@@ -80,6 +80,7 @@ export const handler = async (event, context) => {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN;
     const locationId = process.env.SQUARE_LOCATION_ID;
     const environment = process.env.SQUARE_ENVIRONMENT || 'sandbox';
+    const applicationId = process.env.SQUARE_APPLICATION_ID;
 
     if (!accessToken || !locationId) {
       return {
