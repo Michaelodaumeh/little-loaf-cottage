@@ -15,14 +15,22 @@ import fetch from 'node-fetch';
 
 export const handler = async (event, context) => {
   // Handle CORS preflight requests
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.VITE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const getCorsHeaders = (origin) => {
+    const allowed = ALLOWED_ORIGINS.length === 0 || (origin && ALLOWED_ORIGINS.includes(origin));
+    return {
+      'Access-Control-Allow-Origin': allowed ? (origin || '*') : 'null',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    };
+  };
+
   if (event.httpMethod === 'OPTIONS') {
+    const origin = event.headers && (event.headers.origin || event.headers.Origin);
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
+      headers: getCorsHeaders(origin),
       body: '',
     };
   }
@@ -43,18 +51,30 @@ export const handler = async (event, context) => {
   }
 
   try {
-    // Parse request body
-    const body = JSON.parse(event.body);
-    const { sourceId, amount, currency = 'USD', idempotencyKey } = body;
-
-    // Validate required fields
-    if (!sourceId) {
+    // Parse request body (defensive)
+    let body;
+    try {
+      body = event.body && typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+    } catch (err) {
+      // Bad JSON
       return {
         statusCode: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ error: 'Invalid JSON in request body', status: 'FAILED' }),
+      };
+    }
+
+    const { sourceId, amount, amountCents, currency = 'USD', idempotencyKey } = body || {};
+
+    // Validate required fields
+    const origin = event.headers && (event.headers.origin || event.headers.Origin);
+    if (!sourceId) {
+      return {
+        statusCode: 400,
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: 'Missing sourceId (payment token)',
           status: 'FAILED'
@@ -62,33 +82,69 @@ export const handler = async (event, context) => {
       };
     }
 
-    if (!amount || amount <= 0) {
+    // Basic validation for Square source token (non-empty string); modify as needed for stricter patterns
+    if (typeof sourceId !== 'string' || sourceId.trim().length === 0) {
       return {
         statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Invalid sourceId', status: 'FAILED' }),
+      };
+    }
+
+    // Determine final amount in smallest currency unit (cents for USD)
+    let finalAmount;
+    if (typeof amountCents !== 'undefined' && amountCents !== null) {
+      finalAmount = Number(amountCents);
+    } else {
+      // amount may be sent as dollars (float) or cents (integer)
+      const rawAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      if (rawAmount == null || Number.isNaN(rawAmount)) {
+        finalAmount = NaN;
+      } else if (Number.isInteger(rawAmount)) {
+        // Ambiguity: assume integer > 1000 is already cents; else treat as dollars
+        finalAmount = rawAmount > 1000 ? rawAmount : Math.round(rawAmount * 100);
+      } else {
+        // Float -> dollars, convert to cents
+        finalAmount = Math.round(rawAmount * 100);
+      }
+    }
+
+    // Enforce allowed currency and amount bounds (env-configurable)
+    const ALLOWED_CURRENCIES = (process.env.ALLOWED_CURRENCIES || 'USD').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    if (!ALLOWED_CURRENCIES.includes((currency || 'USD').toUpperCase())) {
+      return {
+        statusCode: 400,
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Unsupported currency', status: 'FAILED' }),
+      };
+    }
+
+    const MIN_AMOUNT_CENTS = Number(process.env.MIN_AMOUNT_CENTS || process.env.VITE_MIN_AMOUNT_CENTS || 50); // default 50 cents
+    const MAX_AMOUNT_CENTS = Number(process.env.MAX_AMOUNT_CENTS || process.env.VITE_MAX_AMOUNT_CENTS || 1000000); // default $10,000
+
+    if (!Number.isFinite(finalAmount) || finalAmount < MIN_AMOUNT_CENTS || finalAmount > MAX_AMOUNT_CENTS) {
+      return {
+        statusCode: 400,
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          error: 'Invalid payment amount',
-          status: 'FAILED'
+          error: 'Invalid payment amount (out of bounds)',
+          status: 'FAILED',
+          details: { min: MIN_AMOUNT_CENTS, max: MAX_AMOUNT_CENTS }
         }),
       };
     }
 
     // Get environment variables
-    const accessToken = process.env.SQUARE_ACCESS_TOKEN;
-    const locationId = process.env.SQUARE_LOCATION_ID;
-    const environment = process.env.SQUARE_ENVIRONMENT || 'sandbox';
-    const applicationId = process.env.SQUARE_APPLICATION_ID;
+  // Server-side environment variables. Try both canonical and VITE_ variants as a fallback
+  const accessToken = process.env.SQUARE_ACCESS_TOKEN || process.env.VITE_SQUARE_ACCESS_TOKEN;
+  const locationId = process.env.SQUARE_LOCATION_ID || process.env.VITE_SQUARE_LOCATION_ID;
+  const environment = process.env.SQUARE_ENVIRONMENT || process.env.VITE_SQUARE_ENVIRONMENT || 'sandbox';
+  const applicationId = process.env.SQUARE_APPLICATION_ID || process.env.VITE_SQUARE_APPLICATION_ID;
 
     if (!accessToken || !locationId) {
       return {
         statusCode: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: 'Server configuration error',
           status: 'FAILED'
@@ -101,8 +157,16 @@ export const handler = async (event, context) => {
       ? 'https://connect.squareup.com/v2/payments'
       : 'https://connect.squareupsandbox.com/v2/payments';
 
-    // Generate idempotency key if not provided
-    const finalIdempotencyKey = idempotencyKey || crypto.randomUUID();
+    // Generate idempotency key if not provided; provide a small fallback if randomUUID isn't available
+    const uuidv4 = () => {
+      // RFC4122 version 4 compliant UUID generator
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (crypto.randomBytes ? crypto.randomBytes(1)[0] : Math.floor(Math.random() * 256)) % 16;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    };
+    const finalIdempotencyKey = idempotencyKey || (crypto.randomUUID ? crypto.randomUUID() : uuidv4());
 
 
     // Prepare Square payment request
@@ -110,7 +174,7 @@ export const handler = async (event, context) => {
       source_id: sourceId,
       idempotency_key: finalIdempotencyKey,
       amount_money: {
-        amount: amount,
+        amount: finalAmount,
         currency: currency
       },
       location_id: locationId,
@@ -132,37 +196,33 @@ export const handler = async (event, context) => {
 
     // Handle Square API response
     if (!response.ok) {
-      
+      // Log server-side for debugging
+      // eslint-disable-next-line no-console
+      console.error('[Square] API error', { status: response.status, body: data });
+
       // Extract error details from Square response
-      const errorMessage = data.errors && data.errors.length > 0 
-        ? data.errors.map(err => err.detail).join(', ')
+      const errorMessage = data && data.errors && data.errors.length > 0
+        ? data.errors.map((err) => err.detail || err.message || JSON.stringify(err)).join(', ')
         : 'Payment processing failed';
 
       return {
         statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Content-Type': 'application/json',
-        },
+        headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           error: errorMessage,
           status: 'FAILED',
-          squareErrors: data.errors || []
+          squareErrors: data && data.errors ? data.errors : []
         }),
       };
     }
 
     // Payment successful
-
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
+      headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
       body: JSON.stringify({
         status: 'COMPLETED',
-        payment: data.payment,
+        payment: data && data.payment ? data.payment : data,
         message: 'Payment processed successfully'
       }),
     };

@@ -5,14 +5,29 @@
  * All sensitive values are loaded from environment variables.
  */
 
+/* global __SQUARE_APP_ID__, __SQUARE_LOCATION_ID__, __SQUARE_ENVIRONMENT__ */
+
 // Square configuration using environment variables
+// Note: Vite exposes environment variables that start with VITE_ to the client.
+// For local dev and builds with Vite, use VITE_SQUARE_APPLICATION_ID and VITE_SQUARE_LOCATION_ID.
+// When deploying to Netlify, set the same build environment variables (VITE_ prefixed)
+// so they are embedded into the client bundle at build time.
 export const squareConfig = {
-  // Square Application ID (public key - safe to expose)
-  applicationId: import.meta.env.SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || __SQUARE_APP_ID__ || '',
-  
+  // Square Application ID (public key - safe to expose to client-side)
+  // Prefer VITE_ prefixed vars (Vite) -> import.meta.env.VITE_SQUARE_APPLICATION_ID
+  applicationId:
+    import.meta.env.VITE_SQUARE_APPLICATION_ID ||
+    import.meta.env.SQUARE_APPLICATION_ID ||
+    typeof __SQUARE_APP_ID__ !== 'undefined' && __SQUARE_APP_ID__ ||
+    '',
+
   // Square Location ID (public - safe to expose)
-  locationId: import.meta.env.SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || __SQUARE_LOCATION_ID__ || '',
-  
+  locationId:
+    import.meta.env.VITE_SQUARE_LOCATION_ID ||
+    import.meta.env.SQUARE_LOCATION_ID ||
+    typeof __SQUARE_LOCATION_ID__ !== 'undefined' && __SQUARE_LOCATION_ID__ ||
+    '',
+
   // Payment processing endpoint
   paymentEndpoint: '/.netlify/functions/process-payment',
   
@@ -54,6 +69,27 @@ export const isSquareConfigured = () => {
 
 // Get Square environment (sandbox or production)
 export const getSquareEnvironment = () => {
-  return import.meta.env.VITE_SQUARE_ENVIRONMENT || import.meta.env.SQUARE_ENVIRONMENT || __SQUARE_ENVIRONMENT__ || 'sandbox';
+  return (
+    import.meta.env.VITE_SQUARE_ENVIRONMENT ||
+    import.meta.env.SQUARE_ENVIRONMENT ||
+    (typeof __SQUARE_ENVIRONMENT__ !== 'undefined' && __SQUARE_ENVIRONMENT__) ||
+    'sandbox'
+  );
 };
+
+// Helper: warn at runtime if config is missing (useful to debug deployed builds)
+if (typeof window !== 'undefined') {
+  // Delay to avoid spamming during server-side rendering (if any)
+  setTimeout(() => {
+    if (!isSquareConfigured()) {
+      // Provide actionable advice in the message
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Square] applicationId or locationId is missing.\n' +
+          'Set VITE_SQUARE_APPLICATION_ID and VITE_SQUARE_LOCATION_ID in your .env (for local dev)\n' +
+          'and in your Netlify site build environment variables (for deployed builds).'
+      );
+    }
+  }, 200);
+}
 
