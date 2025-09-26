@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './css/Contact.css';
+import { sendEmail } from '../utils/emailService';
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -26,18 +27,49 @@ export default function Contact() {
     setSubmitStatus(null);
 
     try {
-      // Simulate form submission (replace with actual email service)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSubmitStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+      // Send confirmation email to the user
+      const customerEmail = formData.email;
+      const subject = `Thanks for contacting Little Loaf Cottage`;
+      const text = `Hi ${formData.name || ''},\n\nThanks for reaching out. We received your message:\n\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}\n\nWe'll get back to you shortly.\n\n- Little Loaf Cottage`;
+
+      const adminEmail = import.meta.env.VITE_ORDERS_EMAIL || 'orders@littleloafcottage.com';
+
+      // Send customer confirmation
+      const customerResult = await sendEmail({
+        to: customerEmail,
+        subject,
+        text,
+        html: `<p>Hi ${formData.name || ''},</p><p>Thanks for reaching out. We received your message:</p><p><strong>Subject:</strong> ${formData.subject}</p><p><strong>Message:</strong><br/>${formData.message.replace(/\n/g, '<br/>')}</p><p>We'll get back to you shortly.</p><p>- Little Loaf Cottage</p>`
       });
+
+      // In local dev we intentionally skip sending; detect that and fail in production
+      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      if (customerResult && customerResult.status === 'LOCAL_DEV_SKIP' && !isLocalhost) {
+        throw new Error('Customer email was skipped - email service may not be configured in production');
+      }
+      if (!customerResult || (customerResult.status !== 'SENT' && customerResult.status !== 'LOCAL_DEV_SKIP')) {
+        throw new Error(customerResult?.error || 'Failed to send confirmation email to customer');
+      }
+
+      // Send admin notification
+      const adminResult = await sendEmail({
+        to: adminEmail,
+        subject: `Contact form received: ${formData.subject}`,
+        text: `New contact form submission:\n\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nSubject: ${formData.subject}\nMessage:\n${formData.message}`
+      });
+
+      if (adminResult && adminResult.status === 'LOCAL_DEV_SKIP' && !isLocalhost) {
+        throw new Error('Admin email was skipped - email service may not be configured in production');
+      }
+      if (!adminResult || (adminResult.status !== 'SENT' && adminResult.status !== 'LOCAL_DEV_SKIP')) {
+        throw new Error(adminResult?.error || 'Failed to send notification email to admin');
+      }
+
+      setSubmitStatus('success');
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Contact form submission error:', error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
