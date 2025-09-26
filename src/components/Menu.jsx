@@ -77,7 +77,7 @@ export default function Menu() {
     },
     { 
       name: "Chocolate Chip Cookies", 
-      price: 3, 
+      price: 1, 
       description: "Soft, chewy cookies with premium chocolate chips",
       emoji: "🍪",
       image: cinnamonRollsImg,
