@@ -79,7 +79,7 @@ export const handler = async (event) => {
     // Prepare email message
     const msg = {
       to: to,
-      from: from || process.env.FROM_EMAIL || 'littleloafcottagebakery@gmail.com', // Default verified sender
+      from: from || process.env.FROM_EMAIL || 'no-reply@example.com', // Default placeholder sender (replace in env)
       subject: subject,
       text: text,
       html: html || text, // Use text as HTML if no HTML provided
