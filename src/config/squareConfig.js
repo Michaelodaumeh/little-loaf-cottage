@@ -8,10 +8,10 @@
 // Square configuration using environment variables
 export const squareConfig = {
   // Square Application ID (public key - safe to expose)
-  applicationId: import.meta.env.VITE_SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || __SQUARE_APP_ID__ || '',
+  applicationId: import.meta.env.SQUARE_APPLICATION_ID || import.meta.env.SQUARE_APP_ID || __SQUARE_APP_ID__ || '',
   
   // Square Location ID (public - safe to expose)
-  locationId: import.meta.env.VITE_SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || __SQUARE_LOCATION_ID__ || '',
+  locationId: import.meta.env.SQUARE_LOCATION_ID || import.meta.env.SQUARE_LOCATION_ID || __SQUARE_LOCATION_ID__ || '',
   
   // Payment processing endpoint
   paymentEndpoint: '/.netlify/functions/process-payment',
@@ -48,30 +48,6 @@ export const squareConfig = {
 export const isSquareConfigured = () => {
   const hasAppId = !!squareConfig.applicationId;
   const hasLocationId = !!squareConfig.locationId;
-  
-  // Debug logging to help troubleshoot deployment issues
-  if (typeof window !== 'undefined') {
-    console.log('🔍 Square Configuration Debug:', {
-      applicationId: squareConfig.applicationId || 'MISSING',
-      locationId: squareConfig.locationId || 'MISSING',
-      environment: getSquareEnvironment(),
-      hasAppId,
-      hasLocationId,
-      isConfigured: hasAppId && hasLocationId,
-      envVars: {
-        VITE_SQUARE_APPLICATION_ID: import.meta.env.VITE_SQUARE_APPLICATION_ID || 'MISSING',
-        VITE_SQUARE_LOCATION_ID: import.meta.env.VITE_SQUARE_LOCATION_ID || 'MISSING',
-        VITE_SQUARE_ENVIRONMENT: import.meta.env.VITE_SQUARE_ENVIRONMENT || 'MISSING',
-        SQUARE_APP_ID: import.meta.env.SQUARE_APP_ID || 'MISSING',
-        SQUARE_LOCATION_ID: import.meta.env.SQUARE_LOCATION_ID || 'MISSING',
-        SQUARE_ENVIRONMENT: import.meta.env.SQUARE_ENVIRONMENT || 'MISSING',
-        // Build-time variables (injected by Vite)
-        __SQUARE_APP_ID__: __SQUARE_APP_ID__ || 'MISSING',
-        __SQUARE_LOCATION_ID__: __SQUARE_LOCATION_ID__ || 'MISSING',
-        __SQUARE_ENVIRONMENT__: __SQUARE_ENVIRONMENT__ || 'MISSING'
-      }
-    });
-  }
   
   return hasAppId && hasLocationId;
 };
