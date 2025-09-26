@@ -69,6 +69,19 @@ export const handler = async (event, context) => {
 
     const { sourceId, amount, amountCents, currency = 'USD', idempotencyKey } = body || {};
 
+    const debug = process.env.DEBUG_PROCESS_PAYMENT === 'true';
+
+    // Log a small, non-sensitive summary for diagnostics (do NOT log card tokens or secrets)
+    if (debug) {
+      // eslint-disable-next-line no-console
+      console.log('[process-payment] incoming request summary:', {
+        hasSourceId: !!sourceId,
+        amountRaw: amount,
+        amountCentsRaw: amountCents,
+        origin: event.headers && (event.headers.origin || event.headers.Origin)
+      });
+    }
+
     // Validate required fields
     const origin = event.headers && (event.headers.origin || event.headers.Origin);
     if (!sourceId) {
@@ -228,6 +241,20 @@ export const handler = async (event, context) => {
     };
 
   } catch (error) {
+    // Log the error for server-side debugging
+    // eslint-disable-next-line no-console
+    console.error('[process-payment] unexpected error:', error && (error.stack || error.message || error));
+
+    const debug = process.env.DEBUG_PROCESS_PAYMENT === 'true';
+    const responseBody = debug ? {
+      error: error && (error.message || 'Internal server error'),
+      status: 'FAILED',
+      detail: (error && (error.stack || null))
+    } : {
+      error: 'Internal server error',
+      status: 'FAILED',
+      message: 'Payment processing failed. Please try again.'
+    };
 
     return {
       statusCode: 500,
@@ -235,11 +262,7 @@ export const handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        error: 'Internal server error',
-        status: 'FAILED',
-        message: 'Payment processing failed. Please try again.'
-      }),
+      body: JSON.stringify(responseBody),
     };
   }
 };

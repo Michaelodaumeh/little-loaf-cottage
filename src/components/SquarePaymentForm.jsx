@@ -64,35 +64,50 @@ export default function SquarePaymentForm({
             });
           }
 
-          // Dynamically import the SDK to avoid mismatches between ESM/CJS
-          // consumers and the SDK's published bundles. Different bundlers
-          // may present the module as { payments } or { default: { payments } }.
-          const sdkModule = await import('@square/web-sdk');
+          // Prefer the global CDN script if present (window.Square.payments).
+          // This avoids bundler/export-shape mismatches that can produce
+          // "Class extends value #<Object> is not a constructor or null" errors.
+          if (typeof window !== 'undefined' && window.Square && typeof window.Square.payments === 'function') {
+            if (debugSquare) {
+              // eslint-disable-next-line no-console
+              console.log('[Square][debug] using window.Square.payments (CDN)');
+            }
+            paymentsRef.current = await window.Square.payments(
+              squareConfig.applicationId.trim(),
+              squareConfig.locationId.trim(),
+              getSquareEnvironment()
+            );
+          } else {
+            // Dynamically import the SDK to avoid mismatches between ESM/CJS
+            // consumers and the SDK's published bundles. Different bundlers
+            // may present the module as { payments } or { default: { payments } }.
+            const sdkModule = await import('@square/web-sdk');
 
-          // Resolve the `payments` factory from multiple possible module shapes.
-          // Examples:
-          // - Named export: { payments }
-          // - Default export with payments: { default: { payments } }
-          // - Some bundlers expose the function directly as default
-          const paymentsFactory = sdkModule.payments || (sdkModule.default && sdkModule.default.payments) || sdkModule.default || sdkModule;
+            // Resolve the `payments` factory from multiple possible module shapes.
+            // Examples:
+            // - Named export: { payments }
+            // - Default export with payments: { default: { payments } }
+            // - Some bundlers expose the function directly as default
+            const paymentsFactory = sdkModule.payments || (sdkModule.default && sdkModule.default.payments) || sdkModule.default || sdkModule;
 
-          // Log the resolved shape when debug enabled
-          if (debugSquare && typeof window !== 'undefined') {
-            // eslint-disable-next-line no-console
-            console.log('[Square][debug] sdkModule keys:', Object.keys(sdkModule || {}));
-            // eslint-disable-next-line no-console
-            console.log('[Square][debug] resolved paymentsFactory type:', typeof paymentsFactory);
+            // Log the resolved shape when debug enabled
+            if (debugSquare && typeof window !== 'undefined') {
+              // eslint-disable-next-line no-console
+              console.log('[Square][debug] sdkModule keys:', Object.keys(sdkModule || {}));
+              // eslint-disable-next-line no-console
+              console.log('[Square][debug] resolved paymentsFactory type:', typeof paymentsFactory);
+            }
+
+            if (typeof paymentsFactory !== 'function') {
+              throw new Error('Square SDK import did not expose a payments factory function. Resolved type: ' + typeof paymentsFactory);
+            }
+
+            paymentsRef.current = await paymentsFactory(
+              squareConfig.applicationId.trim(),
+              squareConfig.locationId.trim(),
+              getSquareEnvironment()
+            );
           }
-
-          if (typeof paymentsFactory !== 'function') {
-            throw new Error('Square SDK import did not expose a payments factory function. Resolved type: ' + typeof paymentsFactory);
-          }
-
-          paymentsRef.current = await paymentsFactory(
-            squareConfig.applicationId.trim(),
-            squareConfig.locationId.trim(),
-            getSquareEnvironment()
-          );
         } catch (initError) {
           // Handle specific Square SDK errors
           if (initError.name === 'InvalidApplicationIdError') {
