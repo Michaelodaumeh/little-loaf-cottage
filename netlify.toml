@@ -40,7 +40,10 @@
 [build.environment]
 # Tell Netlify secrets scanner to ignore these known non-secret VITE_* keys
 # (These values are public identifiers used by the client and do not contain secrets.)
-SECRETS_SCAN_OMIT_KEYS = "VITE_SQUARE_APPLICATION_ID,VITE_SQUARE_LOCATION_ID,VITE_SQUARE_ENVIRONMENT"
+SECRETS_SCAN_OMIT_KEYS = "VITE_SQUARE_APPLICATION_ID,VITE_SQUARE_LOCATION_ID,VITE_SQUARE_ENVIRONMENT,SQUARE_ENVIRONMENT,SECRETS_SCAN_OMIT_KEYS"
+
+# Optional: omit common build/output paths from secrets scanning if they contain only public identifiers
+SECRETS_SCAN_OMIT_PATHS = "dist/**,node_modules/**"
 
 # Note: Environment variables should be set in Netlify Dashboard
 # Do NOT hardcode sensitive values here - they would be public in the repository
