@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { payments } from '@square/web-sdk';
+// Importing `@square/web-sdk` dynamically inside the initializer to avoid
+// issues with different module system shapes (named vs default export)
+// which can cause runtime errors like "Class extends value #<Object> is not a constructor or null".
 import { squareConfig, isSquareConfigured, getSquareEnvironment } from '../config/squareConfig';
 
 import { sendOrderEmails } from '../utils/emailService';
@@ -62,7 +64,31 @@ export default function SquarePaymentForm({
             });
           }
 
-          paymentsRef.current = await payments(
+          // Dynamically import the SDK to avoid mismatches between ESM/CJS
+          // consumers and the SDK's published bundles. Different bundlers
+          // may present the module as { payments } or { default: { payments } }.
+          const sdkModule = await import('@square/web-sdk');
+
+          // Resolve the `payments` factory from multiple possible module shapes.
+          // Examples:
+          // - Named export: { payments }
+          // - Default export with payments: { default: { payments } }
+          // - Some bundlers expose the function directly as default
+          const paymentsFactory = sdkModule.payments || (sdkModule.default && sdkModule.default.payments) || sdkModule.default || sdkModule;
+
+          // Log the resolved shape when debug enabled
+          if (debugSquare && typeof window !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.log('[Square][debug] sdkModule keys:', Object.keys(sdkModule || {}));
+            // eslint-disable-next-line no-console
+            console.log('[Square][debug] resolved paymentsFactory type:', typeof paymentsFactory);
+          }
+
+          if (typeof paymentsFactory !== 'function') {
+            throw new Error('Square SDK import did not expose a payments factory function. Resolved type: ' + typeof paymentsFactory);
+          }
+
+          paymentsRef.current = await paymentsFactory(
             squareConfig.applicationId.trim(),
             squareConfig.locationId.trim(),
             getSquareEnvironment()
