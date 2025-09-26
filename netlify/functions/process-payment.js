@@ -231,17 +231,26 @@ export const handler = async (event, context) => {
     if (!response.ok) {
       // Log server-side for debugging
       // eslint-disable-next-line no-console
-      console.error('[Square] API error', { status: response.status, body: data });
+      const dataStr = (() => {
+        try { return JSON.stringify(data); } catch (e) { return String(data); }
+      })();
+      console.error('[Square] API error', { status: response.status, body: dataStr });
 
       // Extract error details from Square response
       const errorMessage = data && data.errors && data.errors.length > 0
         ? data.errors.map((err) => err.detail || err.message || JSON.stringify(err)).join(', ')
         : 'Payment processing failed';
 
+      const debug = process.env.DEBUG_PROCESS_PAYMENT === 'true';
       return {
         statusCode: 400,
         headers: { ...getCorsHeaders(origin), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(debug ? {
+          error: errorMessage,
+          status: 'FAILED',
+          squareErrors: data && data.errors ? data.errors : [],
+          squareResponse: dataStr
+        } : {
           error: errorMessage,
           status: 'FAILED',
           squareErrors: data && data.errors ? data.errors : []
