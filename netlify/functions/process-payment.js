@@ -11,7 +11,25 @@
  */
 
 import crypto from 'crypto';
-import fetch from 'node-fetch';
+
+// Use the platform global fetch when available (Netlify / Node 18+ provides it).
+// Avoid importing `node-fetch` at module top-level because its ESM/CJS
+// bundling pulls in `fetch-blob` and `formdata-polyfill` which can crash
+// during lambda init with "Class extends value #<Object> is not a constructor or null".
+const getFetch = async () => {
+  if (typeof globalThis.fetch === 'function') return globalThis.fetch;
+  // If not present, attempt a dynamic import. This should be rare on Netlify.
+  try {
+    // dynamic import to avoid top-level ESM issues
+    // eslint-disable-next-line import/no-extraneous-dependencies
+    const mod = await import('node-fetch');
+    return mod.default || mod;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('No fetch available and dynamic import failed:', err);
+    throw err;
+  }
+};
 
 export const handler = async (event, context) => {
   // Handle CORS preflight requests
@@ -195,7 +213,9 @@ export const handler = async (event, context) => {
     };
 
     // Make request to Square API
-    const response = await fetch(squareApiUrl, {
+    const _fetch = await getFetch();
+
+    const response = await _fetch(squareApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
