@@ -51,6 +51,17 @@ export default function SquarePaymentForm({
 
         // Initialize Square Payments with comprehensive error handling
         try {
+          // Optional debug logging from env
+          const debugSquare = import.meta.env.VITE_DEBUG_SQUARE === 'true';
+          if (debugSquare && typeof window !== 'undefined') {
+            // eslint-disable-next-line no-console
+            console.log('[Square][debug] initializing with', {
+              applicationId: squareConfig.applicationId,
+              locationId: squareConfig.locationId,
+              environment: getSquareEnvironment()
+            });
+          }
+
           paymentsRef.current = await payments(
             squareConfig.applicationId.trim(),
             squareConfig.locationId.trim(),
@@ -179,6 +190,13 @@ export default function SquarePaymentForm({
       
       // Tokenize the card information
       const result = await cardRef.current.tokenize();
+
+      // Debug-log tokenize result when enabled
+      const debugSquare = import.meta.env.VITE_DEBUG_SQUARE === 'true';
+      if (debugSquare && typeof window !== 'undefined') {
+        // eslint-disable-next-line no-console
+        console.log('[Square][debug] tokenize result:', result);
+      }
       
       if (result.status === 'OK') {
         
@@ -198,7 +216,18 @@ export default function SquarePaymentForm({
           body: JSON.stringify(paymentData)
         });
 
-        const paymentResult = await response.json();
+        let paymentResult = {};
+        try {
+          paymentResult = await response.json();
+        } catch (jsonErr) {
+          // eslint-disable-next-line no-console
+          console.error('[Square][debug] failed to parse payment response JSON', jsonErr);
+        }
+
+        if (import.meta.env.VITE_DEBUG_SQUARE === 'true' && typeof window !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.log('[Square][debug] payment endpoint response', { status: response.status, body: paymentResult });
+        }
 
         if (response.ok && paymentResult.status === 'COMPLETED') {
           // Send email notifications if customer email is provided
