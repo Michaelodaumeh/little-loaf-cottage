@@ -109,7 +109,7 @@ export default function Contact() {
               color: 'var(--text-dark)', 
               marginBottom: 'var(--spacing-lg)',
               fontWeight: '600'
-            }}>
+            }}> 
               Get In Touch
             </h2>
             

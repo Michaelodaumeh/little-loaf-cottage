@@ -32,17 +32,19 @@ const getFetch = async () => {
 };
 
 export const handler = async (event, context) => {
-  // Handle CORS preflight requests
-  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.VITE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  // Global error handler to ensure we always return a response
+  try {
+    // Handle CORS preflight requests
+    const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.VITE_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-  const getCorsHeaders = (origin) => {
-    const allowed = ALLOWED_ORIGINS.length === 0 || (origin && ALLOWED_ORIGINS.includes(origin));
-    return {
-      'Access-Control-Allow-Origin': allowed ? (origin || '*') : 'null',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    const getCorsHeaders = (origin) => {
+      const allowed = ALLOWED_ORIGINS.length === 0 || (origin && ALLOWED_ORIGINS.includes(origin));
+      return {
+        'Access-Control-Allow-Origin': allowed ? (origin || '*') : 'null',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      };
     };
-  };
 
   if (event.httpMethod === 'OPTIONS') {
     const origin = event.headers && (event.headers.origin || event.headers.Origin);
@@ -172,6 +174,17 @@ export const handler = async (event, context) => {
   const environment = process.env.SQUARE_ENVIRONMENT || process.env.VITE_SQUARE_ENVIRONMENT || 'sandbox';
   const applicationId = process.env.SQUARE_APPLICATION_ID || process.env.VITE_SQUARE_APPLICATION_ID;
 
+  // Debug environment variables (only log if DEBUG_PROCESS_PAYMENT is enabled)
+  if (process.env.DEBUG_PROCESS_PAYMENT === 'true') {
+    console.log('[process-payment] Environment variables:', {
+      hasAccessToken: !!accessToken,
+      hasLocationId: !!locationId,
+      hasApplicationId: !!applicationId,
+      environment,
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes('SQUARE'))
+    });
+  }
+
     if (!accessToken || !locationId) {
       return {
         statusCode: 500,
@@ -292,6 +305,25 @@ export const handler = async (event, context) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(responseBody),
+    };
+  }
+  
+  } catch (globalError) {
+    // Global error handler - this should never happen, but ensures we always return a response
+    console.error('[process-payment] Global error handler caught:', globalError);
+    
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        error: 'Internal server error',
+        status: 'FAILED',
+        message: 'Payment processing failed. Please try again.',
+        debug: process.env.DEBUG_PROCESS_PAYMENT === 'true' ? globalError.message : undefined
+      }),
     };
   }
 };

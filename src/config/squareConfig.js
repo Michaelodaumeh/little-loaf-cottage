@@ -85,9 +85,18 @@ if (typeof window !== 'undefined') {
       // Provide actionable advice in the message
       // eslint-disable-next-line no-console
       console.warn(
-        '[Square] applicationId or locationId is missing.\n' +
-          'Set VITE_SQUARE_APPLICATION_ID and VITE_SQUARE_LOCATION_ID in your .env (for local dev)\n' +
-          'and in your Netlify site build environment variables (for deployed builds).'
+        '[Square] Configuration missing. Current values:',
+        {
+          applicationId: squareConfig.applicationId || 'MISSING',
+          locationId: squareConfig.locationId || 'MISSING',
+          environment: getSquareEnvironment(),
+          envVars: {
+            VITE_SQUARE_APPLICATION_ID: import.meta.env.VITE_SQUARE_APPLICATION_ID || 'MISSING',
+            VITE_SQUARE_LOCATION_ID: import.meta.env.VITE_SQUARE_LOCATION_ID || 'MISSING',
+            VITE_SQUARE_ENVIRONMENT: import.meta.env.VITE_SQUARE_ENVIRONMENT || 'MISSING'
+          }
+        },
+        '\nTo fix: Set VITE_SQUARE_APPLICATION_ID and VITE_SQUARE_LOCATION_ID in your Netlify site build environment variables.'
       );
     }
   }, 200);

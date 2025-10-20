@@ -258,11 +258,26 @@ export default function SquarePaymentForm({
         });
 
         let paymentResult = {};
+        let responseText = '';
+        
         try {
-          paymentResult = await response.json();
+          // Get response text first to debug empty responses
+          responseText = await response.text();
+          if (responseText.trim()) {
+            paymentResult = JSON.parse(responseText);
+          } else {
+            console.warn('[Square][debug] Empty response from payment endpoint');
+            paymentResult = { status: 'FAILED', error: 'Empty response from server' };
+          }
         } catch (jsonErr) {
           // eslint-disable-next-line no-console
-          console.error('[Square][debug] failed to parse payment response JSON', jsonErr);
+          console.error('[Square][debug] failed to parse payment response JSON', {
+            error: jsonErr,
+            responseText,
+            status: response.status,
+            statusText: response.statusText
+          });
+          paymentResult = { status: 'FAILED', error: 'Invalid response from server' };
         }
 
         if (import.meta.env.VITE_DEBUG_SQUARE === 'true' && typeof window !== 'undefined') {
@@ -290,7 +305,24 @@ export default function SquarePaymentForm({
           
           onPaymentSuccess?.(paymentResult);
         } else {
-          throw new Error(paymentResult.errorMessage || 'Payment processing failed');
+          // Provide more specific error messages
+          let errorMessage = 'Payment processing failed';
+          
+          if (!response.ok) {
+            if (response.status === 500) {
+              errorMessage = paymentResult.error || 'Server error. Please try again.';
+            } else if (response.status === 400) {
+              errorMessage = paymentResult.error || 'Invalid payment information.';
+            } else {
+              errorMessage = `Server error (${response.status}). Please try again.`;
+            }
+          } else if (paymentResult.error) {
+            errorMessage = paymentResult.error;
+          } else if (paymentResult.errorMessage) {
+            errorMessage = paymentResult.errorMessage;
+          }
+          
+          throw new Error(errorMessage);
         }
       } else {
         // Handle tokenization errors - only show for actual tokenization failures
