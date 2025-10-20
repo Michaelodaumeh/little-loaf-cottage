@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOrder } from "../contexts/OrderContext";
-import SquarePaymentForm from './SquarePaymentForm';
+import StripePaymentForm from './StripePaymentForm';
 import "./css/Order.css";
 
 export default function Order() {
@@ -76,7 +76,7 @@ export default function Order() {
     try {
       const totalPrice = getTotalPrice();
       
-      // Email notifications are now handled automatically by SquarePaymentForm
+      // Email notifications are now handled automatically by StripePaymentForm
       
       setIsSubmitting(false);
       setPaymentStep('success');
@@ -507,12 +507,12 @@ export default function Order() {
                 </div>
               )}
 
-              <SquarePaymentForm
+              <StripePaymentForm
                 amount={getTotalPrice()}
                 customerEmail={formData.email}
                 onPaymentSuccess={handlePaymentSuccess}
                 onPaymentError={handlePaymentError}
-                isProcessing={isSubmitting}
+                disabled={isSubmitting}
               />
 
               <div className="payment-actions">
