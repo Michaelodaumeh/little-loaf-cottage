@@ -22,7 +22,9 @@ export const stripeConfig = {
     '',
 
   // Payment processing endpoint
-  paymentEndpoint: '/.netlify/functions/process-stripe-payment',
+  paymentEndpoint: import.meta.env.DEV 
+    ? 'http://localhost:8888/.netlify/functions/process-stripe-payment'
+    : '/.netlify/functions/process-stripe-payment',
   
   // Currency
   currency: 'usd',

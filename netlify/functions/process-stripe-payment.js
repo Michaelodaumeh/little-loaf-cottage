@@ -241,23 +241,4 @@ export const handler = async (event, context) => {
       body: JSON.stringify(responseBody),
     };
   }
-  
-  } catch (globalError) {
-    // Global error handler - this should never happen, but ensures we always return a response
-    console.error('[process-stripe-payment] Global error handler caught:', globalError);
-    
-    return {
-      statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        error: 'Internal server error',
-        status: 'FAILED',
-        message: 'Payment processing failed. Please try again.',
-        debug: process.env.DEBUG_PROCESS_PAYMENT === 'true' ? globalError.message : undefined
-      }),
-    };
-  }
 };
